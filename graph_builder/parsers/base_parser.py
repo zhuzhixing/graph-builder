@@ -49,10 +49,15 @@ def generate_target_key(row):
 
 
 @dataclass
-class BaseConfig:
+class Download:
     download_url: str
-    database: str
     filename: str
+
+
+@dataclass
+class BaseConfig:
+    downloads: List[Download]
+    database: str
 
 
 @dataclass
@@ -114,19 +119,23 @@ class BaseParser:
         self.download = download
 
         if self.download:
-            self.download_db(
-                self.config.download_url,
-                self.db_directory,
-                self.config.filename,
-                skip=skip,
-            )
+            for download in self.config.downloads:
+                self.download_db(
+                    download.download_url,
+                    self.db_directory,
+                    download.filename,
+                    skip=skip,
+                )
 
         self.entities = self._read_reference_entity_file(reference_entity_file)
         self.num_workers = num_workers
 
     @property
-    def raw_filepath(self):
-        return self.db_directory / self.config.filename
+    def raw_filepaths(self):
+        return [
+            self.db_directory / download.filename
+            for download in self.config.downloads
+        ]
 
     @property
     def database(self):

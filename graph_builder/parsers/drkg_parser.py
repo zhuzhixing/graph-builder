@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 import logging
 from typing import List
-from graph_builder.parsers.base_parser import BaseConfig, BaseParser, Relation
+from graph_builder.parsers.base_parser import BaseConfig, BaseParser, Relation, Download
 
 logger = logging.getLogger("graph_builder.parsers.drkg_parser")
 
@@ -17,10 +17,14 @@ class DrkgParser(BaseParser):
         skip=True,
         num_workers: int = 20,
     ):
-        config = BaseConfig(
+        download_obj = Download(
             download_url="https://dgl-data.s3-us-west-2.amazonaws.com/dataset/DRKG/drkg.tar.gz",
-            database="drkg",
             filename="drkg.tar.gz",
+        )
+
+        config = BaseConfig(
+            downloads=[download_obj],
+            database="drkg",
         )
 
         super().__init__(
@@ -121,7 +125,7 @@ class DrkgParser(BaseParser):
         return df
 
     def extract_relations(self) -> List[Relation]:
-        raw_filepath = self.raw_filepath
+        raw_filepath = self.raw_filepaths[0]
         # Untar the file
         logger.info(f"Untar {raw_filepath}")
         self._extract_tar_gz(raw_filepath)
