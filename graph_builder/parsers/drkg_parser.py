@@ -159,6 +159,11 @@ class DrkgParser(BaseParser):
         )
 
         drkg = drkg.rename(columns={"relation": "relation_type"})
+        drkg["resource"] = drkg["relation_type"].apply(
+            lambda x: x.split(sep)[0]
+        )
+        drkg["pmids"] = ""
+        drkg["key_sentence"] = ""
 
         # Drop columns
         drkg = drkg.drop(columns=["source", "target"])

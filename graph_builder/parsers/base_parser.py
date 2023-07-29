@@ -4,11 +4,12 @@ import ftplib
 import json
 import wget
 import datetime
+import time
 import requests
 import logging
 from pathlib import Path
 from multiprocessing import Pool
-from typing import Type, List, Tuple
+from typing import Type, List, Tuple, Optional
 from dataclasses import dataclass
 
 
@@ -67,6 +68,9 @@ class Relation:
     source_type: str
     target_type: str
     relation_type: str
+    resource: str
+    pmids: Optional[str]
+    key_sentence: Optional[str]
 
     @classmethod
     def from_args(cls, **kwargs):
@@ -252,6 +256,7 @@ class BaseParser:
                     r = requests.get(database_url, headers=header)
                     with open(os.path.join(directory, file_name), "wb") as out:
                         out.write(r.content)
+            # time.sleep(10)
         except Exception as err:
             raise Exception(
                 "Something went wrong. {}.\nURL:{}".format(err, database_url)
@@ -387,8 +392,8 @@ class BaseParser:
         df = pd.concat(df_dict.values())
 
         logger.info("The number of relations: %s" % len(df))
-        df.dropna(inplace=True)
-        logger.info("The number of relations after dropna: %s" % len(df))
+        # df.dropna(inplace=True)
+        # logger.info("The number of relations after dropna: %s" % len(df))
 
         df.rename(
             columns={
