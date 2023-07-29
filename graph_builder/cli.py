@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 
 
 def _parse_database(
-    entity_file, db_dir, output_dir, database, download=True, skip=True
+    entity_file, db_dir, output_dir, database, download=True, skip=True, num_workers=20
 ):
     Parser = parser_map.get(database, None)
     if Parser:
@@ -18,6 +18,7 @@ def _parse_database(
             output_directory=output_dir,
             download=download,
             skip=skip,
+            num_workers=num_workers
         )
         parsed_results = parser.parse()
     else:
@@ -42,14 +43,12 @@ class NotSupportedAction(Exception):
     "--db-dir",
     "-d",
     required=True,
-    type=click.Path(exists=True, dir_okay=True),
     help="The directory which saved the downloaded database files.",
 )
 @click.option(
     "--output-dir",
     "-o",
     required=True,
-    type=click.Path(exists=True, dir_okay=True),
     help="The directory which saved the graph files.",
 )
 @click.option(
@@ -66,7 +65,7 @@ class NotSupportedAction(Exception):
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
     help="The ontology file which saved the formatted entities. We will use this file to format the relations in your database.",
 )
-@click.option("--n-jobs", "-n", required=False, help="Hom many jobs?", default=4)
+@click.option("--n-jobs", "-n", required=False, help="Hom many jobs?", default=20)
 @click.option(
     "--download/--no-download",
     default=False,
@@ -90,18 +89,19 @@ def cli(output_dir, db_dir, database, ontology_file, download, n_jobs, skip):
             invalid_databases,
         )
     logger.info(
-        "Run jobs with (output_dir: %s, db_dir: %s, databases: %s, config: %s, download: %s, skip: %s)"
+        "Run jobs with (output_dir: %s, db_dir: %s, databases: %s, download: %s, skip: %s)"
         % (output_dir, db_dir, all_databases, download, skip)
     )
 
     Parallel(n_jobs=1)(
         delayed(_parse_database)(
-            entity_file=ontology_file,
+            entity_file=Path(ontology_file),
             db_dir=Path(db_dir),
             output_dir=Path(output_dir),
             database=db,
             download=download,
             skip=skip,
+            num_workers=n_jobs,
         )
         for db in valid_databases
     )

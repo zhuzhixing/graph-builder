@@ -37,7 +37,7 @@ class DrkgParser(BaseParser):
         import tarfile
 
         with tarfile.open(filepath, "r:gz") as tar:
-            tar.extractall(path=self.output_directory)
+            tar.extractall(path=self.db_directory)
 
     def read_drkg(self, drkg_filepath: Path) -> pd.DataFrame:
         # Specify the column names
@@ -125,7 +125,7 @@ class DrkgParser(BaseParser):
         # Untar the file
         logger.info(f"Untar {raw_filepath}")
         self._extract_tar_gz(raw_filepath)
-        drkg_filepath = self.output_directory / "drkg.tsv"
+        drkg_filepath = self.db_directory / "drkg.tsv"
 
         logger.info(f"Read {drkg_filepath}")
         drkg = self.read_drkg(drkg_filepath)
