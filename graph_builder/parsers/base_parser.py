@@ -1,10 +1,10 @@
 import os
+import sys
 import pandas as pd
 import ftplib
 import json
 import wget
 import datetime
-import time
 import requests
 import logging
 from pathlib import Path
@@ -53,6 +53,7 @@ def generate_target_key(row):
 class Download:
     download_url: str
     filename: str
+    is_downloadable: bool = True
 
 
 @dataclass
@@ -123,13 +124,24 @@ class BaseParser:
         self.download = download
 
         if self.download:
+            failed_downloads = []
             for download in self.config.downloads:
-                self.download_db(
-                    download.download_url,
-                    self.db_directory,
-                    download.filename,
-                    skip=skip,
-                )
+                if download.is_downloadable:
+                    self.download_db(
+                        download.download_url,
+                        self.db_directory,
+                        download.filename,
+                        skip=skip,
+                    )
+                else:
+                    logger.warning(
+                        "Cannot download data automatically, please access the %s url and download %s file manually. After downloaded, you need to place it into %s directory."
+                        % (download.download_url, download.filename, self.db_directory)
+                    )
+                    failed_downloads.append(download.filename)
+
+            if len(failed_downloads) > 0:
+                sys.exit(1)
 
         self.entities = self._read_reference_entity_file(reference_entity_file)
         self.num_workers = num_workers
@@ -137,8 +149,7 @@ class BaseParser:
     @property
     def raw_filepaths(self):
         return [
-            self.db_directory / download.filename
-            for download in self.config.downloads
+            self.db_directory / download.filename for download in self.config.downloads
         ]
 
     @property
@@ -372,7 +383,7 @@ class BaseParser:
         df_dict = {key: group_df for key, group_df in df.groupby("combined_key")}
 
         for idx, key in enumerate(df_dict.keys()):
-            print("Processing %s/%s: %s" % (idx, len(df_dict.keys()), key))
+            logger.info("Processing %.2f%%" % ((idx * 1.0 / len(df_dict.keys())) * 100))
             value = entity_id_map.get(key, None)
             df_dict[key]["source_entity_id"] = get_value(value, "entity_id")
             df_dict[key]["source_entity_type"] = get_value(value, "entity_type")
@@ -383,7 +394,7 @@ class BaseParser:
         df["combined_key"] = df.apply(generate_target_key, axis=1)
         df_dict = {key: group_df for key, group_df in df.groupby("combined_key")}
         for idx, key in enumerate(df_dict.keys()):
-            print("Processing %s/%s: %s" % (idx, len(df_dict.keys()), key))
+            logger.info("Processing %.2f%%" % ((idx * 1.0 / len(df_dict.keys())) * 100))
             value = entity_id_map.get(key, None)
             df_dict[key]["target_entity_id"] = get_value(value, "entity_id")
             df_dict[key]["target_entity_type"] = get_value(value, "entity_type")
@@ -471,6 +482,10 @@ class BaseParser:
             self.output_filepath,
             sep="\t",
             index=False,
+        )
+
+        logger.info(
+            "Finally, save %s relations in %s" % (df.shape[0], self.output_filepath)
         )
 
         return [Relation.from_args(**row) for row in df.to_dict("records")]  # type: ignore

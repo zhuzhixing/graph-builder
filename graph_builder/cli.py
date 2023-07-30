@@ -6,6 +6,8 @@ from pathlib import Path
 from graph_builder.parsers import parser_map
 from joblib import Parallel, delayed
 
+logger = logging.getLogger("graph_builder.cli")
+
 
 def _parse_database(
     entity_file, db_dir, output_dir, database, download=True, skip=True, num_workers=20
@@ -18,20 +20,13 @@ def _parse_database(
             output_directory=output_dir,
             download=download,
             skip=skip,
-            num_workers=num_workers
+            num_workers=num_workers,
         )
         parsed_results = parser.parse()
     else:
         raise NotSupportedAction("Not supported database: %s" % database)
 
     return parsed_results
-
-
-verboselogs.install()
-coloredlogs.install(
-    fmt="%(asctime)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger("graph_builder.cli")
 
 
 class NotSupportedAction(Exception):
@@ -74,7 +69,25 @@ class NotSupportedAction(Exception):
 @click.option(
     "--skip/--no-skip", default=True, help="Whether skip the existing file(s)?"
 )
-def cli(output_dir, db_dir, database, ontology_file, download, n_jobs, skip):
+@click.option("--log-file", "-l", required=False, help="The log file.")
+@click.option(
+    "--debug/--no-debug", default=False, help="Whether enable the debug mode?"
+)
+def cli(
+    output_dir, db_dir, database, ontology_file, download, n_jobs, skip, log_file, debug
+):
+    fmt = "%(asctime)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s"
+    if log_file:
+        fh = logging.FileHandler(log_file)
+        fh.setFormatter(logging.Formatter(fmt))
+        logging.getLogger().addHandler(fh)
+
+    if debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    verboselogs.install()
+    coloredlogs.install(fmt=fmt)
+
     all_databases = database
     valid_databases = list(
         filter(lambda database: database in parser_map.keys(), all_databases)
