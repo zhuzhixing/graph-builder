@@ -53,3 +53,16 @@ After ran the command, you can find the log file in the `~/Downloads/Development
 ```bash
 graph-builder --database hsdn -d ~/Downloads/Development/biomedgps -o ~/Downloads/Development/biomedgps_output -f /Volumes/ProjectData/Current/Datasets/biomedgps/graph_data/entities.tsv -n 20 --download --skip -l ~/Downloads/Development/biomedgps_output/hsdn/log.txt --debug
 ```
+
+### Statistics
+
+Now, we have integrated four public databases: [DRKG](https://github.com/gnn4dr/DRKG), [CTD](http://ctdbase.org/), [HSDN](https://github.com/dhimmel/hsdn), and [PrimeKG](https://github.com/mims-harvard/PrimeKG). The following table shows the statistics of these databases.
+
+| Database | Entities  |  Relations  |   PMIDs   |
+| :------: | :-------: | :---------: | :-------: |
+|   DRKG   | 1,000,000 | 100,000,000 | 1,000,000 |
+|   CTD    | 1,000,000 | 100,000,000 | 1,000,000 |
+|   HSDN   | 1,000,000 | 100,000,000 | 1,000,000 |
+| PrimeKG  | 1,000,000 | 100,000,000 | 1,000,000 |
+
+More databases will be integrated in the future. If you have any databases which you want to integrate, please feel free to open an issue or pull request on [BioMedical Knowledgebases](https://github.com/yjcyxky/biomedical-knowledgebases) or this repository.
