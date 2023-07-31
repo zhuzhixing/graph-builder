@@ -61,7 +61,7 @@ class PrimeKGParser(BaseParser):
         elif raw_type == "pathway":
             return "Pathway"
         else:
-            return ""
+            return raw_type
 
     def format_entity_id(self, raw_id: str, raw_source: str) -> str:
         if raw_source == "NCBI":
@@ -69,17 +69,23 @@ class PrimeKGParser(BaseParser):
         elif raw_source == "DrugBank":
             return f"DrugBank:{raw_id}"
         elif raw_source == "UBERON":
-            return f"UBERON:{raw_id}"
+            if len(raw_id) == 7:
+                return f"UBERON:{raw_id}"
+            else:
+                return f"UBERON:{raw_id.zfill(7)}"
         elif raw_source == "GO":
             return f"GO:{raw_id}"
         elif raw_source == "MONDO":
-            return f"MONDO:{raw_id}"
+            if len(raw_id) == 7:
+                return f"MONDO:{raw_id}"
+            else:
+                return f"MONDO:{raw_id.zfill(7)}"
         elif raw_source == "HPO":
             return f"HP:{raw_id}"
         elif raw_source == "REACTOME":
             return f"REACT:{raw_id}"
         else:
-            return ""
+            return raw_id
 
     def format_relation_type(self, raw_relation_type: str) -> str:
         return raw_relation_type.replace(" ", "_")
@@ -92,6 +98,18 @@ class PrimeKGParser(BaseParser):
             dtype=str,
         )
 
+        expected_columns = [
+            "source_id",
+            "source_type",
+            "target_id",
+            "target_type",
+            "relation_type",
+            "resource",
+            "key_sentence",
+            "pmids",
+        ]
+
+        logger.info("Format the data frame...")
         df["source_type"] = df["x_type"].apply(lambda x: self.format_entity_type(x))
         df["target_type"] = df["y_type"].apply(lambda x: self.format_entity_type(x))
         df["source_id"] = df.apply(
@@ -119,21 +137,49 @@ class PrimeKGParser(BaseParser):
         df["key_sentence"] = ""
         df["pmids"] = ""
 
-        # Remove all unnecessary columns
-        df = df[
-            [
-                "source_id",
-                "source_type",
-                "target_id",
-                "target_type",
-                "relation_type",
-                "resource",
-                "key_sentence",
-                "pmids",
-            ]
+        # Filter all grouped relations
+        grouped_df = df[
+            (df["x_source"] == "MONDO_grouped") | (df["y_source"] == "MONDO_grouped")
         ]
 
-        return df
+        # Remove all unnecessary columns
+        df = df[~df.index.isin(grouped_df.index)]
+        df = df[expected_columns]
+
+        # Split one row into multiple rows
+        # Step 1: Split the string into a list
+        grouped_df["x_id_split"] = grouped_df["x_id"].str.split("_")
+        grouped_df["y_id_split"] = grouped_df["y_id"].str.split("_")
+
+        # Step 2: Duplicate the rows
+        grouped_df = grouped_df.explode("x_id_split").reset_index(drop=True)
+        grouped_df = grouped_df.explode("y_id_split").reset_index(drop=True)
+        grouped_df.reset_index(drop=True, inplace=True)
+
+        logger.debug("Get %d grouped relations: \n%s" % (len(grouped_df), grouped_df))
+
+        grouped_df["source_id"] = grouped_df.apply(
+            lambda x: self.format_entity_id(
+                x["x_id_split"],
+                "MONDO" if x["x_source"] == "MONDO_grouped" else x["x_source"],
+            ),
+            axis=1,
+        )
+
+        grouped_df["target_id"] = grouped_df.apply(
+            lambda x: self.format_entity_id(
+                x["y_id_split"],
+                "MONDO" if x["y_source"] == "MONDO_grouped" else x["y_source"],
+            ),
+            axis=1,
+        )
+
+        grouped_df = grouped_df[expected_columns]
+
+        logger.info("Get %d non-grouped relations" % len(df))
+        logger.info("Get %d grouped relations" % len(grouped_df))
+
+        return pd.concat([df, grouped_df])
 
     def extract_relations(self) -> List[Relation]:
         raw_filepath = self.raw_filepaths[0]

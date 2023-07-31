@@ -110,7 +110,7 @@ class BaseParser:
         num_workers: int = 20,
     ):
         if config is None:
-            raise ValueError("config is required.")
+            raise ValueError("config is required, you need to specify it in subclass.")
 
         self.output_directory = output_directory.joinpath(config.database)
         if not os.path.exists(self.output_directory):
@@ -134,11 +134,21 @@ class BaseParser:
                         skip=skip,
                     )
                 else:
-                    logger.warning(
-                        "Cannot download data automatically, please access the %s url and download %s file manually. After downloaded, you need to place it into %s directory."
-                        % (download.download_url, download.filename, self.db_directory)
-                    )
-                    failed_downloads.append(download.filename)
+                    if not os.path.exists(self.db_directory / download.filename):
+                        logger.warning(
+                            "Cannot download data automatically, please access the '%s' url and download %s file manually. After downloaded, you need to place it into '%s' directory."
+                            % (
+                                download.download_url,
+                                download.filename,
+                                self.db_directory,
+                            )
+                        )
+                        failed_downloads.append(download.filename)
+                    else:
+                        logger.info(
+                            "Found %s file in %s directory, skip to download it."
+                            % (download.filename, self.db_directory)
+                        )
 
             if len(failed_downloads) > 0:
                 sys.exit(1)
@@ -147,17 +157,29 @@ class BaseParser:
         self.num_workers = num_workers
 
     @property
-    def raw_filepaths(self):
+    def raw_filepaths(self) -> List[Path]:
+        """Returns all the raw filepaths which specified in the config. You can get and use them in the subclass.
+
+        Returns:
+            List[Path]: List of raw filepaths.
+        """
         return [
             self.db_directory / download.filename for download in self.config.downloads
         ]
 
     @property
     def database(self):
+        """Returns the database name which is used to generate the output directory and output filename.
+        """
         return self.config.database
 
     @property
-    def output_filepath(self):
+    def output_filepath(self) -> Path:
+        """Returns the output filepath. We will save the formatted relations in this file. Because we expect to save all relations into a single file, so you need to implement the `extract_relations` method to extract all relations from the database file and return a list of Relation objects. Then, we will convert the list of Relation objects to a dataframe and save it into this file.
+
+        Returns:
+            Path: A Path object which points to the output file.
+        """
         filepath = self.output_directory / f"formatted_{self.database}.tsv"
         return filepath
 
