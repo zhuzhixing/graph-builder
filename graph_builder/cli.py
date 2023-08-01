@@ -82,11 +82,12 @@ def cli(
         fh.setFormatter(logging.Formatter(fmt))
         logging.getLogger().addHandler(fh)
 
-    if debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-
     verboselogs.install()
-    coloredlogs.install(fmt=fmt)
+    # Use the logger name instead of the module name
+    coloredlogs.install(
+        level=logging.DEBUG if debug else logging.INFO,
+        fmt=fmt
+    )
 
     all_databases = database
     valid_databases = list(

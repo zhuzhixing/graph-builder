@@ -152,13 +152,12 @@ class PrimeKGParser(BaseParser):
         grouped_df["y_id_split"] = grouped_df["y_id"].str.split("_")
 
         # Step 2: Duplicate the rows
-        grouped_df = grouped_df.explode("x_id_split").reset_index(drop=True)
-        grouped_df = grouped_df.explode("y_id_split").reset_index(drop=True)
-        grouped_df.reset_index(drop=True, inplace=True)
+        sgrouped_df = grouped_df.explode("x_id_split").reset_index(drop=True)
+        sgrouped_df = sgrouped_df.explode("y_id_split").reset_index(drop=True)
 
-        logger.debug("Get %d grouped relations: \n%s" % (len(grouped_df), grouped_df))
+        logger.debug("Get %d grouped relations: \n%s" % (len(sgrouped_df), sgrouped_df))
 
-        grouped_df["source_id"] = grouped_df.apply(
+        sgrouped_df["source_id"] = sgrouped_df.apply(
             lambda x: self.format_entity_id(
                 x["x_id_split"],
                 "MONDO" if x["x_source"] == "MONDO_grouped" else x["x_source"],
@@ -166,7 +165,7 @@ class PrimeKGParser(BaseParser):
             axis=1,
         )
 
-        grouped_df["target_id"] = grouped_df.apply(
+        sgrouped_df["target_id"] = sgrouped_df.apply(
             lambda x: self.format_entity_id(
                 x["y_id_split"],
                 "MONDO" if x["y_source"] == "MONDO_grouped" else x["y_source"],
@@ -174,7 +173,7 @@ class PrimeKGParser(BaseParser):
             axis=1,
         )
 
-        grouped_df = grouped_df[expected_columns]
+        grouped_df = sgrouped_df[expected_columns]
 
         logger.info("Get %d non-grouped relations" % len(df))
         logger.info("Get %d grouped relations" % len(grouped_df))
