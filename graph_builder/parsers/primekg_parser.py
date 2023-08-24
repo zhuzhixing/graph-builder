@@ -74,7 +74,7 @@ class PrimeKGParser(BaseParser):
             else:
                 return f"UBERON:{raw_id.zfill(7)}"
         elif raw_source == "GO":
-            return f"GO:{raw_id}"
+            return f"GO:{raw_id.zfill(7)}"
         elif raw_source == "MONDO":
             if len(raw_id) == 7:
                 return f"MONDO:{raw_id}"
@@ -178,7 +178,7 @@ class PrimeKGParser(BaseParser):
         logger.info("Get %d non-grouped relations" % len(df))
         logger.info("Get %d grouped relations" % len(grouped_df))
 
-        return pd.concat([df, grouped_df])
+        return pd.concat([df, grouped_df], axis=0, ignore_index=True)
 
     def extract_relations(self) -> List[Relation]:
         raw_filepath = self.raw_filepaths[0]

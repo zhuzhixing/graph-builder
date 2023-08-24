@@ -395,7 +395,19 @@ class CtdParser(BaseParser):
             df = pl.DataFrame.to_pandas(df)
             data.append(df)
 
-        df = pd.concat(data, ignore_index=True)
+        df = pd.concat(data, axis=0, ignore_index=True)
+        df = df[
+            [
+                "source_id",
+                "source_type",
+                "target_id",
+                "target_type",
+                "relation_type",
+                "resource",
+                "key_sentence",
+                "pmids",
+            ]
+        ]
 
         return [Relation.from_args(**row) for row in df.to_dict(orient="records")]  # type: ignore
 

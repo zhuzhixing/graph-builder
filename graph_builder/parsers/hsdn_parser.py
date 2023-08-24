@@ -131,6 +131,19 @@ class HsdnParser(BaseParser):
         df["key_sentence"] = ""
         df["pmids"] = ""
 
+        df = df[
+            [
+                "source_id",
+                "source_type",
+                "target_id",
+                "target_type",
+                "relation_type",
+                "resource",
+                "key_sentence",
+                "pmids",
+            ]
+        ]
+
         return df
 
     def extract_relations(self) -> List[Relation]:

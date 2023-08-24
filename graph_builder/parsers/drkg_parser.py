@@ -166,7 +166,18 @@ class DrkgParser(BaseParser):
         drkg["key_sentence"] = ""
 
         # Drop columns
-        drkg = drkg.drop(columns=["source", "target"])
+        drkg = drkg[
+            [
+                "source_id",
+                "source_type",
+                "target_id",
+                "target_type",
+                "relation_type",
+                "resource",
+                "key_sentence",
+                "pmids",
+            ]
+        ]
 
         return [Relation.from_args(**row) for row in drkg.to_dict(orient="records")]  # type: ignore
 
