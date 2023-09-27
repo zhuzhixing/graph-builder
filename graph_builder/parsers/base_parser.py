@@ -399,7 +399,17 @@ class BaseParser:
         logger.info("Found %s entity ids in entity id map." % len(entity_id_map.keys()))
 
         # Convert a list of relations to a dataframe
-        df = pd.DataFrame(relations)
+        df = pd.DataFrame(relations, dtype=str)
+
+        # Dropna method cannot identify empty string as NaN, so we need to replace empty string with None
+        df.replace('', None, inplace=True)
+
+        # Remove all rows with empty source_id or target_id
+        logger.info("The number of relations before dropna: %s" % len(df))
+        df.dropna(subset=["source_id", "target_id"], inplace=True)
+        logger.info("The number of relations after dropna: %s" % len(df))
+        output_file = self.output_directory / f"raw_{self.database}.tsv"
+        df.to_csv(output_file, sep="\t", index=False)
 
         df["combined_key"] = df.apply(generate_source_key, axis=1)
         df_dict = {key: group_df for key, group_df in df.groupby("combined_key")}
