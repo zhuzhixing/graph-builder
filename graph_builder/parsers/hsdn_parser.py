@@ -122,14 +122,19 @@ class HsdnParser(BaseParser):
         logger.info("Get id for %d symptoms" % len(symptom_id_map.keys()))
         df["target_id"] = list(map(lambda x: symptom_id_map[x], df["symptom"]))
         df["target_type"] = "Symptom"
+        df["target_name"] = df["symptom"]
 
         logger.info("Get id for %d diseases" % len(disease_id_map.keys()))
         df["source_id"] = list(map(lambda x: disease_id_map[x], df["disease"]))
         df["source_type"] = "Disease"
+        df["source_name"] = df["disease"]
+
         df["relation_type"] = "HSDN::has_symptom:Disease:Symptom"
         df["resource"] = "HSDN"
         df["key_sentence"] = ""
         df["pmids"] = ""
+
+        df["score"] = df["tfidf_score"]
 
         df = df[
             [
@@ -141,6 +146,10 @@ class HsdnParser(BaseParser):
                 "resource",
                 "key_sentence",
                 "pmids",
+                # Additional columns
+                "source_name",
+                "target_name",
+                "score",
             ]
         ]
 
@@ -158,6 +167,8 @@ class HsdnParser(BaseParser):
 
         logger.info("Format the data frame...")
         hsdn = self.format_df(hsdn, mesh)
+
+        logger.info("Warning: HSDN don't provide the ids for symptoms and diseases, so we use the names to match the ids. But this may cause some missing entities and relations.")
 
         logger.info("Get %d relations" % len(hsdn))
 

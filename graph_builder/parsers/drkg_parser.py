@@ -62,9 +62,14 @@ class DrkgParser(BaseParser):
 
         return df
 
-    def format_id(self, entity_type: str, id: str) -> str:
+    def format_id(self, entity_type: str, id: str) -> str | List[str]:
         if entity_type == "Gene":
-            return f"ENTREZ:{id}"
+            try:
+                id_int = int(id)
+                return f"ENTREZ:{id_int}"
+            except ValueError:
+                # Keep all the unknown gene id
+                return id
         elif entity_type == "Compound":
             if id.startswith("DB"):
                 return f"DrugBank:{id}"
@@ -159,9 +164,7 @@ class DrkgParser(BaseParser):
         )
 
         drkg = drkg.rename(columns={"relation": "relation_type"})
-        drkg["resource"] = drkg["relation_type"].apply(
-            lambda x: x.split(sep)[0]
-        )
+        drkg["resource"] = drkg["relation_type"].apply(lambda x: x.split(sep)[0])
         drkg["pmids"] = ""
         drkg["key_sentence"] = ""
 
