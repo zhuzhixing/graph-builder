@@ -1,5 +1,6 @@
 import os
 import sys
+import numpy as np
 import pandas as pd
 import ftplib
 import json
@@ -169,8 +170,7 @@ class BaseParser:
 
     @property
     def database(self):
-        """Returns the database name which is used to generate the output directory and output filename.
-        """
+        """Returns the database name which is used to generate the output directory and output filename."""
         return self.config.database
 
     @property
@@ -402,7 +402,7 @@ class BaseParser:
         df = pd.DataFrame(relations, dtype=str)
 
         # Dropna method cannot identify empty string as NaN, so we need to replace empty string with None
-        df.replace('', None, inplace=True)
+        df.replace("", None, inplace=True)
 
         # Remove all rows with empty source_id or target_id
         logger.info("The number of relations before dropna: %s" % len(df))
@@ -461,14 +461,77 @@ class BaseParser:
         # source_id and target_id should not be empty
         empty_df = df[(df["source_id"] == "") | (df["target_id"] == "")]
         df = df[(df["source_id"] != "") & (df["target_id"] != "")]
-        invalid_outfile = self.output_directory / f"invalid_{self.database}.tsv"
+
+        unformatted_outfile = self.output_directory / f"unformatted_{self.database}.tsv"
         logger.info(
             "Found %s invalid relations, all invalid relations are saved in %s"
-            % (num_df - len(df), invalid_outfile)
+            % (num_df - len(df), unformatted_outfile)
         )
 
+        # Save all unformatted entities into a valid entity file
+        # We want to build a knowledge graph with unformatted + formatted entities and relations, so we need to save all unformatted entities into a valid entity file.
+        unformatted_source_entities = empty_df[empty_df["source_id"] == ""][
+            ["raw_source_id", "raw_source_type"]
+        ].drop_duplicates()
+        # Rename the columns
+        unformatted_source_entities.rename(
+            columns={
+                "raw_source_id": "id",
+                "raw_source_type": "label",
+            },
+            inplace=True,
+        )
+
+        unformatted_target_entities = empty_df[empty_df["target_id"] == ""][
+            ["raw_target_id", "raw_target_type"]
+        ].drop_duplicates()
+        # Rename the columns
+        unformatted_target_entities.rename(
+            columns={
+                "raw_target_id": "id",
+                "raw_target_type": "label",
+            },
+            inplace=True,
+        )
+
+        unformatted_entities = pd.concat(
+            [unformatted_source_entities, unformatted_target_entities]
+        ).drop_duplicates()
+
+        # Add new columns
+        unformatted_entities["name"] = unformatted_entities["id"]
+        unformatted_entities["resource"] = "Unformatted" + self.database.title()
+        unformatted_entities["description"] = ""
+        unformatted_entities["synonyms"] = ""
+        unformatted_entities["pmids"] = ""
+        unformatted_entities["taxid"] = ""
+        unformatted_entities["xrefs"] = ""
+
+        # Save the unformatted entities
+        unformatted_entity_outfile = (
+            self.output_directory / f"unformatted_{self.database}_entities.tsv"
+        )
+        unformatted_entities.to_csv(
+            unformatted_entity_outfile,
+            sep="\t",
+            index=False,
+        )
+
+        logger.info(
+            "Found %s unformatted entities and they are saved in %s"
+            % (len(unformatted_entities), unformatted_entity_outfile)
+        )
+
+        # Save all unformatted relations into a valid relation file
+        # Fill the empty source_id and target_id with the raw_source_id and raw_target_id
+        empty_df["source_id"].replace("", np.nan, inplace=True)
+        empty_df["source_id"] = empty_df["source_id"].fillna(empty_df["raw_source_id"])
+        empty_df["target_id"].replace("", np.nan, inplace=True)
+        empty_df["target_id"] = empty_df["target_id"].fillna(empty_df["raw_target_id"])
+
+        # Save the unformatted relations
         empty_df.to_csv(
-            invalid_outfile,
+            unformatted_outfile,
             sep="\t",
             index=False,
         )

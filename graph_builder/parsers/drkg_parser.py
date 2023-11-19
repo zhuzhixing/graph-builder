@@ -62,13 +62,16 @@ class DrkgParser(BaseParser):
 
         return df
 
-    def format_id(self, entity_type: str, id: str) -> str | List[str]:
+    def format_id(self, entity_type: str, id: str) -> str:
         if entity_type == "Gene":
             try:
                 id_int = int(id)
                 return f"ENTREZ:{id_int}"
             except ValueError:
                 # Keep all the unknown gene id
+                if ";" in id:
+                    return ";".join([f"ENTREZ:{gene_id}" for gene_id in id.split(";")])
+
                 return id
         elif entity_type == "Compound":
             if id.startswith("DB"):
