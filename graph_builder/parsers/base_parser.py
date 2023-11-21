@@ -528,6 +528,10 @@ class BaseParser:
         empty_df["source_id"] = empty_df["source_id"].fillna(empty_df["raw_source_id"])
         empty_df["target_id"].replace("", np.nan, inplace=True)
         empty_df["target_id"] = empty_df["target_id"].fillna(empty_df["raw_target_id"])
+        empty_df["source_type"].replace("", np.nan, inplace=True)
+        empty_df["source_type"] = empty_df["source_type"].fillna(empty_df["raw_source_type"])
+        empty_df["target_type"].replace("", np.nan, inplace=True)
+        empty_df["target_type"] = empty_df["target_type"].fillna(empty_df["raw_target_type"])
 
         # Save the unformatted relations
         empty_df.to_csv(
