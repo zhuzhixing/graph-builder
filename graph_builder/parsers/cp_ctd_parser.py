@@ -157,7 +157,7 @@ class RelationshipExtractor(BaseExtractor):
 
     def _extract_compound_gene(self, df) -> pl.DataFrame:
         """Extract compound-gene relationships from CTD_chem_gene_ixns.csv"""
-        default_extracted_columns = ["ChemicalID", "GeneID"]
+        default_extracted_columns = ["ChemicalID", "GeneID"‘]
         renamed_columns = ["source_id", "target_id"]
         label = "CTD::IS_ASSOCIATED_WITH"
         df = df.with_columns(pl.col("GeneID").apply(lambda x: "ENTREZ:" + x))
