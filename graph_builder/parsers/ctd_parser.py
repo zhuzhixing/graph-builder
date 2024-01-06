@@ -229,7 +229,7 @@ class RelationshipExtractor(BaseExtractor):
             "induced_by",
             "pmids",
         ]
-        label = "CTD::IS_ASSOCIATED_WITH"
+
         df = df.with_columns(pl.col("GeneID").apply(lambda x: "ENTREZ:" + x))
         df = df.with_columns(pl.col("InferenceScore").cast(pl.Float64))
         new_df = df.with_columns(
