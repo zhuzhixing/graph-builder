@@ -1,6 +1,7 @@
 from pathlib import Path
 import polars as pl
 import pandas as pd
+import numpy as np
 import csv
 import gzip
 import logging
@@ -113,16 +114,30 @@ class RelationshipExtractor(BaseExtractor):
 
         source_type = self.relation_type.split("_")[0]
         target_type = self.relation_type.split("_")[1]
+        
+        new_df = pl.DataFrame({})
+        label_values = []
+        
+        """ Check if label is a NumPy array of strings """
+        if isinstance(label, np.ndarray) and np.issubdtype(label.dtype, np.character):
+            label_values = [f'{my_array}:{source_type}:{target_type}' for my_array in label]
+        elif isinstance(label, str):
+            """ Check if label is a single character string """
+            label_values = [f'{label}:{source_type}:{target_type}'] * df.shape[0]
+        else:
+            """ Process label when it's neither a NumPy array of strings nor a single character string """
+            label_values = ["%s:%s:%s" % (my_array, source_type, target_type) for my_array in label]
+            
         new_df = pl.DataFrame(
             {
-                "relation_type": ["%s:%s:%s" % (label, source_type, target_type)]
-                * df.shape[0],
+                "relation_type": label_values,
                 "source_type": [source_type] * df.shape[0],
                 "target_type": [target_type] * df.shape[0],
                 "resource": [self.database_name] * df.shape[0],
                 "key_sentence": [""] * df.shape[0],
             }
         )
+        new_df = new_df.select([col for col in new_df.columns if col not in df.columns])
         df = df.hstack(new_df)
 
         logging.info(
@@ -159,10 +174,15 @@ class RelationshipExtractor(BaseExtractor):
         """Extract compound-gene relationships from CTD_chem_gene_ixns.csv"""
         default_extracted_columns = ["ChemicalID", "GeneID"]
         renamed_columns = ["source_id", "target_id"]
-        label = "CTD::IS_ASSOCIATED_WITH"
+
         df = df.with_columns(pl.col("GeneID").apply(lambda x: "ENTREZ:" + x))
         df = df.with_columns(pl.col("ChemicalID").apply(lambda x: "MESH:" + x))
-
+        new_df = df.with_columns(
+            pl.col("InteractionActions")
+            .map_elements(lambda x: f"CTD::{x}" if x else "CTD::IS_ASSOCIATED_WITH")
+        )
+        label = new_df["InteractionActions"].to_numpy()
+        
         return self._extract_relationship(
             df, default_extracted_columns, renamed_columns, label
         )
@@ -172,8 +192,12 @@ class RelationshipExtractor(BaseExtractor):
         default_extracted_columns = ["ChemicalID", "DiseaseID"]
         renamed_columns = ["source_id", "target_id"]
         df = df.with_columns(pl.col("ChemicalID").apply(lambda x: "MESH:" + x))
-        label = "CTD::IS_ASSOCIATED_WITH"
-
+        new_df = df.with_columns(
+            pl.col("DirectEvidence")
+            .map_elements(lambda x: f"CTD::{x}" if x else "CTD::IS_ASSOCIATED_WITH", skip_nulls=False)
+        )
+        label = new_df["DirectEvidence"].to_numpy()
+        
         return self._extract_relationship(
             df, default_extracted_columns, renamed_columns, label
         )
@@ -194,7 +218,6 @@ class RelationshipExtractor(BaseExtractor):
         default_extracted_columns = [
             "GeneID",
             "DiseaseID",
-            "DirectEvidence",
             "InferenceScore",
             "InferenceChemicalName",
             "PubMedIDs",
@@ -202,21 +225,20 @@ class RelationshipExtractor(BaseExtractor):
         renamed_columns = [
             "source_id",
             "target_id",
-            "evidence",
             "degree",
             "induced_by",
             "pmids",
         ]
-        label = "CTD::IS_ASSOCIATED_WITH"
+
         df = df.with_columns(pl.col("GeneID").apply(lambda x: "ENTREZ:" + x))
         df = df.with_columns(pl.col("InferenceScore").cast(pl.Float64))
-
+        new_df = df.with_columns(
+            pl.col("DirectEvidence")
+            .map_elements(lambda x: f"CTD::{x}" if x else "CTD::IS_ASSOCIATED_WITH", skip_nulls=False)
+        )
+        label = new_df["DirectEvidence"].to_numpy()
+        
         merge_funcs = [
-            pl.col("evidence")
-            .filter(pl.col("evidence") != "")
-            .unique()
-            .str.concat("|"),
-
             pl.col("degree").max(),
             
             pl.col("induced_by")
