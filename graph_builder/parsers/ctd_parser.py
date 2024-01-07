@@ -178,8 +178,7 @@ class RelationshipExtractor(BaseExtractor):
         df = df.with_columns(pl.col("GeneID").apply(lambda x: "ENTREZ:" + x))
         df = df.with_columns(pl.col("ChemicalID").apply(lambda x: "MESH:" + x))
         new_df = df.with_columns(
-            pl.col("InteractionActions")
-            .map_elements(lambda x: f"CTD::{x}" if x else "CTD::IS_ASSOCIATED_WITH")
+            pl.col("InteractionActions").apply(lambda x: f"CTD::{x}" if x else "CTD::IS_ASSOCIATED_WITH")
         )
         label = new_df["InteractionActions"].to_numpy()
         
@@ -193,8 +192,7 @@ class RelationshipExtractor(BaseExtractor):
         renamed_columns = ["source_id", "target_id"]
         df = df.with_columns(pl.col("ChemicalID").apply(lambda x: "MESH:" + x))
         new_df = df.with_columns(
-            pl.col("DirectEvidence")
-            .map_elements(lambda x: f"CTD::{x}" if x else "CTD::IS_ASSOCIATED_WITH", skip_nulls=False)
+            pl.col("DirectEvidence").apply(lambda x: f"CTD::{x}" if x else "CTD::IS_ASSOCIATED_WITH", skip_nulls=False)
         )
         label = new_df["DirectEvidence"].to_numpy()
         
@@ -233,8 +231,7 @@ class RelationshipExtractor(BaseExtractor):
         df = df.with_columns(pl.col("GeneID").apply(lambda x: "ENTREZ:" + x))
         df = df.with_columns(pl.col("InferenceScore").cast(pl.Float64))
         new_df = df.with_columns(
-            pl.col("DirectEvidence")
-            .map_elements(lambda x: f"CTD::{x}" if x else "CTD::IS_ASSOCIATED_WITH", skip_nulls=False)
+            pl.col("DirectEvidence").apply(lambda x: f"CTD::{x}" if x else "CTD::IS_ASSOCIATED_WITH", skip_nulls=False)
         )
         label = new_df["DirectEvidence"].to_numpy()
         
