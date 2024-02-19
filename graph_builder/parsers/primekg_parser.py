@@ -19,6 +19,7 @@ class PrimeKGParser(BaseParser):
         download=True,
         skip=True,
         num_workers: int = 20,
+        relation_type_dict_df=None,
     ):
         download_obj = Download(
             download_url="https://dataverse.harvard.edu/file.xhtml?fileId=6180620&version=2.1#",
@@ -39,6 +40,7 @@ class PrimeKGParser(BaseParser):
             download,
             skip,
             num_workers,
+            relation_type_dict_df,
         )
 
     def format_entity_type(self, raw_type: str) -> str:

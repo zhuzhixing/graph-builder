@@ -19,6 +19,7 @@ class HsdnParser(BaseParser):
         download=True,
         skip=True,
         num_workers: int = 20,
+        relation_type_dict_df=None,
     ):
         download_obj = Download(
             download_url="https://static-content.springer.com/esm/art%3A10.1038%2Fncomms5212/MediaObjects/41467_2014_BFncomms5212_MOESM1045_ESM.txt",
@@ -43,6 +44,7 @@ class HsdnParser(BaseParser):
             download,
             skip,
             num_workers,
+            relation_type_dict_df,
         )
 
     def read_hsdn(self, hsdn_filepath: Path) -> pd.DataFrame:

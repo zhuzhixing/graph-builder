@@ -109,6 +109,7 @@ class BaseParser:
         download=True,
         skip=True,
         num_workers: int = 20,
+        relation_type_dict_df: pd.DataFrame | None = None,
     ):
         if config is None:
             raise ValueError("config is required, you need to specify it in subclass.")
@@ -156,6 +157,7 @@ class BaseParser:
 
         self.entities = self._read_reference_entity_file(reference_entity_file)
         self.num_workers = num_workers
+        self.relation_type_dict_df = relation_type_dict_df
 
     @property
     def raw_filepaths(self) -> List[Path]:
@@ -455,6 +457,39 @@ class BaseParser:
         # Remove the combined key
         logger.info("Remove the combined_key column.")
         df.drop(columns=["combined_key"], inplace=True)
+
+        if self.relation_type_dict_df is not None:
+            relation_type_dict_df = self.relation_type_dict_df[
+                ["relation_type", "formatted_relation_type"]
+            ]
+            logger.info("Replace the relation type with the formatted relation type.")
+
+            df = df.merge(
+                relation_type_dict_df,
+                how="left",
+                left_on="relation_type",
+                right_on="relation_type",
+            )
+        else:
+            logger.info("The relation type dictionary is not provided, skip to replace the relation type with the formatted relation type.")
+            df["formatted_relation_type"] = df["relation_type"]
+
+        def check_and_swap(row):
+            if row["formatted_relation_type"] is not None:
+                source_type_in_relation, target_type_in_relation = (
+                    row["formatted_relation_type"].split("::")[2].split(":")
+                )
+            else:
+                source_type_in_relation, target_type_in_relation = "", ""
+
+            if source_type_in_relation == row["target_type"] and target_type_in_relation == row["source_type"]:
+                row["source_id"], row["target_id"] = row["target_id"], row["source_id"]
+                row["source_type"], row["target_type"] = row["target_type"], row["source_type"]
+
+            return row
+
+        logger.info("Check and swap source_id and target_id if needed.")
+        df = pd.DataFrame(df.apply(check_and_swap, axis=1))
 
         num_df = len(df)
         logger.info("The number of relations before filter_na: %s" % num_df)

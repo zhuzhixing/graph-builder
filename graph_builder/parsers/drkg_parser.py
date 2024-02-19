@@ -8,6 +8,7 @@ logger = logging.getLogger("graph_builder.parsers.drkg_parser")
 
 
 class DrkgParser(BaseParser):
+
     def __init__(
         self,
         reference_entity_file: Path,
@@ -16,6 +17,7 @@ class DrkgParser(BaseParser):
         download=True,
         skip=True,
         num_workers: int = 20,
+        relation_type_dict_df=None,
     ):
         download_obj = Download(
             download_url="https://dgl-data.s3-us-west-2.amazonaws.com/dataset/DRKG/drkg.tar.gz",
@@ -35,6 +37,7 @@ class DrkgParser(BaseParser):
             download,
             skip,
             num_workers,
+            relation_type_dict_df,
         )
 
     def _extract_tar_gz(self, filepath: Path):
@@ -95,11 +98,12 @@ class DrkgParser(BaseParser):
         elif entity_type == "Disease":
             # All disease id matches the pattern <database>:\d+, if not, we don't need to care about it. All unknown disease id will be filtered out at the end.
             return id
-        elif entity_type == "SideEffect":
-            if id.startswith("C"):
-                return f"UMLS:{id}"
-            else:
-                return id
+        # Deprecated: We have removed the SideEffect entity type and treat it as a relation type between Compound and Disease or Compound and Symptom.
+        # elif entity_type == "SideEffect":
+        #     if id.startswith("C"):
+        #         return f"UMLS:{id}"
+        #     else:
+        #         return id
         elif entity_type == "PharmacologicClass":
             if id.startswith("N"):
                 return f"NDF-RT:{id}"

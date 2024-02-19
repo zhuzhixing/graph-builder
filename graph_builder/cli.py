@@ -2,6 +2,7 @@ import logging
 import coloredlogs
 import verboselogs
 import click
+import pandas as pd
 from pathlib import Path
 from graph_builder.parsers import parser_map
 from joblib import Parallel, delayed
@@ -10,10 +11,22 @@ logger = logging.getLogger("graph_builder.cli")
 
 
 def _parse_database(
-    entity_file, db_dir, output_dir, database, download=True, skip=True, num_workers=20
+    entity_file, db_dir, output_dir, database, download=True, skip=True, num_workers=20, relation_type_dict_fpath=None
 ):
     Parser = parser_map.get(database, None)
     if Parser:
+        if relation_type_dict_fpath:
+            relation_type_dict_df = pd.read_csv(
+                relation_type_dict_fpath, sep="\t", dtype=str
+            )
+            if (
+                "relation_type" not in relation_type_dict_df.columns
+                or "formatted_relation_type" not in relation_type_dict_df.columns
+            ):
+                raise ValueError("The relation type dictionary file should contain at least the relation_type and formatted_relation_type columns.")
+        else:
+            relation_type_dict_df = None
+
         parser = Parser(
             reference_entity_file=entity_file,
             db_directory=db_dir,
@@ -21,6 +34,7 @@ def _parse_database(
             download=download,
             skip=skip,
             num_workers=num_workers,
+            relation_type_dict_df=relation_type_dict_df,
         )
         parsed_results = parser.parse()
     else:
@@ -67,6 +81,14 @@ class NotSupportedAction(Exception):
     help="Whether download the source file(s)?",
 )
 @click.option(
+    "--relation-type-dict-fpath",
+    "-r",
+    required=False,
+    help="The relation type dictionary file which contains at least the relation_type and formatted_relation_type columns. If not provided, we will use the default relation type dictionary.",
+    default=None,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+)
+@click.option(
     "--skip/--no-skip", default=True, help="Whether skip the existing file(s)?"
 )
 @click.option("--log-file", "-l", required=False, help="The log file.")
@@ -74,7 +96,7 @@ class NotSupportedAction(Exception):
     "--debug/--no-debug", default=False, help="Whether enable the debug mode?"
 )
 def cli(
-    output_dir, db_dir, database, ontology_file, download, n_jobs, skip, log_file, debug
+    output_dir, db_dir, database, ontology_file, download, n_jobs, skip, log_file, debug, relation_type_dict_fpath
 ):
     fmt = "%(asctime)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s"
     if log_file:
@@ -116,6 +138,7 @@ def cli(
             download=download,
             skip=skip,
             num_workers=n_jobs,
+            relation_type_dict_fpath=relation_type_dict_fpath
         )
         for db in valid_databases
     )

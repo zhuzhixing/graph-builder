@@ -309,6 +309,7 @@ class RelationshipExtractor(BaseExtractor):
 
 
 class CtdParser(BaseParser):
+
     def __init__(
         self,
         reference_entity_file: Path,
@@ -317,6 +318,7 @@ class CtdParser(BaseParser):
         download=True,
         skip=True,
         num_workers: int = 20,
+        relation_type_dict_df=None,
     ):
         chem_gene = Download(
             download_url="http://ctdbase.org/reports/CTD_chem_gene_ixns.tsv.gz",
@@ -398,6 +400,7 @@ class CtdParser(BaseParser):
             download,
             skip,
             num_workers,
+            relation_type_dict_df,
         )
 
     def extract_relations(self) -> List[Relation]:
