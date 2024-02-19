@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import numpy as np
 import pandas as pd
@@ -156,6 +157,14 @@ class BaseParser:
                 sys.exit(1)
 
         self.entities = self._read_reference_entity_file(reference_entity_file)
+
+        # For compatibility with the previous version
+        # In future, we will remove the "SideEffect" label from the entities file and treat the side effect as a relation type between drugs and diseases.
+        if "SideEffect" not in self.entities["label"].tolist():
+            self.treat_side_effect_as_disease = True
+        else:
+            self.treat_side_effect_as_disease = False
+
         self.num_workers = num_workers
         self.relation_type_dict_df = relation_type_dict_df
 
@@ -406,6 +415,11 @@ class BaseParser:
         # Dropna method cannot identify empty string as NaN, so we need to replace empty string with None
         df.replace("", None, inplace=True)
 
+        if self.treat_side_effect_as_disease:
+            # If the side effect is not in the entities file, we treat it as a disease
+            df["source_type"].replace("SideEffect", "Disease", inplace=True)
+            df["target_type"].replace("SideEffect", "Disease", inplace=True)
+
         # Remove all rows with empty source_id or target_id
         logger.info("The number of relations before dropna: %s" % len(df))
         df.dropna(subset=["source_id", "target_id"], inplace=True)
@@ -485,6 +499,23 @@ class BaseParser:
             if source_type_in_relation == row["target_type"] and target_type_in_relation == row["source_type"]:
                 row["source_id"], row["target_id"] = row["target_id"], row["source_id"]
                 row["source_type"], row["target_type"] = row["target_type"], row["source_type"]
+
+            if self.treat_side_effect_as_disease:
+                # The relation type might be Hetionet::CcSE::Compound:SideEffect, we need to replace the SideEffect with Disease and the relation type should be Hetionet::CcSE::Compound:Disease when we would like to treat the side effect as a disease.
+                # NOTE: We have replaced the SideEffect with Disease in the entity type in previous step. It's an essential step to make sure the source_type and target_type are consistent with the relation type.
+                if source_type_in_relation == "SideEffect" or target_type_in_relation == "SideEffect":
+                    row["relation_type"] = re.sub(
+                        r"::SideEffect:", "::Disease:", row["relation_type"]
+                    )
+                    row["relation_type"] = re.sub(
+                        r":SideEffect", ":Disease", row["relation_type"]
+                    )
+                    row["formatted_relation_type"] = re.sub(
+                        r"::SideEffect:", "::Disease:", row["formatted_relation_type"]
+                    )
+                    row["formatted_relation_type"] = re.sub(
+                        r":SideEffect", ":Disease", row["formatted_relation_type"]
+                    )
 
             return row
 

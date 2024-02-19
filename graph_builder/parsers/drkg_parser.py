@@ -99,11 +99,11 @@ class DrkgParser(BaseParser):
             # All disease id matches the pattern <database>:\d+, if not, we don't need to care about it. All unknown disease id will be filtered out at the end.
             return id
         # Deprecated: We have removed the SideEffect entity type and treat it as a relation type between Compound and Disease or Compound and Symptom.
-        # elif entity_type == "SideEffect":
-        #     if id.startswith("C"):
-        #         return f"UMLS:{id}"
-        #     else:
-        #         return id
+        elif entity_type == "SideEffect":
+            if id.startswith("C"):
+                return f"UMLS:{id}"
+            else:
+                return id
         elif entity_type == "PharmacologicClass":
             if id.startswith("N"):
                 return f"NDF-RT:{id}"
