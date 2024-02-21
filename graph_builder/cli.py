@@ -24,9 +24,19 @@ def _parse_database(
     Parser = parser_map.get(database, None)
     if Parser:
         if relation_type_dict_fpath:
-            relation_type_dict_df = pd.read_csv(
-                relation_type_dict_fpath, sep="\t", dtype=str
-            )
+            if relation_type_dict_fpath.endswith(".tsv"):
+                relation_type_dict_df = pd.read_csv(
+                    relation_type_dict_fpath, sep="\t", dtype=str
+                )
+            elif relation_type_dict_fpath.endswith(".csv"):
+                relation_type_dict_df = pd.read_csv(relation_type_dict_fpath, dtype=str)
+            elif relation_type_dict_fpath.endswith(".xlsx"):
+                relation_type_dict_df = pd.read_excel(relation_type_dict_fpath, dtype=str, sheet_name="relation_type")
+            else:
+                raise ValueError(
+                    "The relation type dictionary file should be a tsv, csv or xlsx file."
+                )
+
             if (
                 "relation_type" not in relation_type_dict_df.columns
                 or "formatted_relation_type" not in relation_type_dict_df.columns
