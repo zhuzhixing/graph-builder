@@ -120,13 +120,13 @@ class RelationshipExtractor(BaseExtractor):
         
         """ Check if label is a NumPy array of strings """
         if isinstance(label, np.ndarray) and np.issubdtype(label.dtype, np.character):
-            label_values = [f'{my_array}:{source_type}:{target_type}' for my_array in label]
+            label_values = [f'{my_array}::{source_type}:{target_type}' for my_array in label]
         elif isinstance(label, str):
             """ Check if label is a single character string """
-            label_values = [f'{label}:{source_type}:{target_type}'] * df.shape[0]
+            label_values = [f'{label}::{source_type}:{target_type}'] * df.shape[0]
         else:
             """ Process label when it's neither a NumPy array of strings nor a single character string """
-            label_values = ["%s:%s:%s" % (my_array, source_type, target_type) for my_array in label]
+            label_values = ["%s::%s:%s" % (my_array, source_type, target_type) for my_array in label]
             
         new_df = pl.DataFrame(
             {

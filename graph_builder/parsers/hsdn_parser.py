@@ -131,7 +131,7 @@ class HsdnParser(BaseParser):
         df["source_type"] = "Disease"
         df["source_name"] = df["disease"]
 
-        df["relation_type"] = "HSDN::has_symptom:Disease:Symptom"
+        df["relation_type"] = "HSDN::has_symptom::Disease:Symptom"
         df["resource"] = "HSDN"
         df["key_sentence"] = ""
         df["pmids"] = ""
