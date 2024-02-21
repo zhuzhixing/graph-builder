@@ -102,12 +102,14 @@ class Relation:
 
 def check_relation_type(key: str, relation_types: list):
     errors = []
-    for formatted_relation_type in list(set(relation_types)):
+    for relation_type in list(set(relation_types)):
+        relation_type = str(relation_type)
+
         if not re.match(
             r"^[a-zA-Z0-9_]+::[a-zA-Z0-9_\+\- ><]+::[a-zA-Z0-9_]+:[a-zA-Z0-9_]+$",
-            formatted_relation_type,
+            relation_type,
         ):
-            errors.append(formatted_relation_type)
+            errors.append(relation_type)
 
     if len(errors) > 0:
         error_msg = "The {key} should be in the format of 'namespace::relation_type::source_entity_type:target_entity_type', but got the following relation types: {errors}.".format(
@@ -503,6 +505,11 @@ class BaseParser:
                 left_on="relation_type",
                 right_on="relation_type",
             )
+
+            if df["formatted_relation_type"].isnull().any():
+                raise ValueError(
+                    "The formatted_relation_type column contains NaN, please check the relation type dictionary, or you can skip to replace the relation type with the formatted relation type."
+                )
         else:
             logger.info(
                 "The relation type dictionary is not provided, skip to replace the relation type with the formatted relation type."
