@@ -125,7 +125,7 @@ class PrimeKGParser(BaseParser):
         df["relation_type"] = (
             "PrimeKG::"
             + df["display_relation"]
-            + ":"
+            + "::"
             + df["source_type"]
             + ":"
             + df["target_type"]

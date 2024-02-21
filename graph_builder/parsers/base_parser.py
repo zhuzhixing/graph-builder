@@ -100,6 +100,25 @@ class Relation:
         return ret
 
 
+def check_relation_type(key: str, relation_types: list):
+    errors = []
+    for formatted_relation_type in list(set(relation_types)):
+        if not re.match(
+            r"^[a-zA-Z0-9_]+::[a-zA-Z0-9_\+\- ><]+::[a-zA-Z0-9_]+:[a-zA-Z0-9_]+$",
+            formatted_relation_type,
+        ):
+            errors.append(formatted_relation_type)
+
+    if len(errors) > 0:
+        error_msg = "The {key} should be in the format of 'namespace::relation_type::source_entity_type:target_entity_type', but got the following relation types: {errors}.".format(
+            key=key, errors=errors
+        )
+    else:
+        error_msg = ""
+
+    return error_msg
+
+
 class BaseParser:
     def __init__(
         self,
@@ -208,7 +227,7 @@ class BaseParser:
             DataFrame: Pandas dataframe containing all the reference entities.
         """
         if filepath.exists():
-            return pd.read_csv(filepath, sep="\t")
+            return pd.read_csv(filepath, sep="\t", dtype=str)
         else:
             raise FileNotFoundError("The reference entity file is not found.")
 
@@ -485,8 +504,21 @@ class BaseParser:
                 right_on="relation_type",
             )
         else:
-            logger.info("The relation type dictionary is not provided, skip to replace the relation type with the formatted relation type.")
+            logger.info(
+                "The relation type dictionary is not provided, skip to replace the relation type with the formatted relation type."
+            )
             df["formatted_relation_type"] = df["relation_type"]
+
+        # Check the relation type and formatted relation type
+        relation_types = df["relation_type"].tolist()
+        error_msg = check_relation_type("relation_type", relation_types)
+        if error_msg:
+            raise ValueError(error_msg)
+
+        formatted_relation_types = df["formatted_relation_type"].tolist()
+        error_msg = check_relation_type("formatted_relation_type", formatted_relation_types)
+        if error_msg:
+            raise ValueError(error_msg)
 
         def check_and_swap(row):
             if row["formatted_relation_type"] is not None:
@@ -496,14 +528,23 @@ class BaseParser:
             else:
                 source_type_in_relation, target_type_in_relation = "", ""
 
-            if source_type_in_relation == row["target_type"] and target_type_in_relation == row["source_type"]:
+            if (
+                source_type_in_relation == row["target_type"]
+                and target_type_in_relation == row["source_type"]
+            ):
                 row["source_id"], row["target_id"] = row["target_id"], row["source_id"]
-                row["source_type"], row["target_type"] = row["target_type"], row["source_type"]
+                row["source_type"], row["target_type"] = (
+                    row["target_type"],
+                    row["source_type"],
+                )
 
             if self.treat_side_effect_as_disease:
                 # The relation type might be Hetionet::CcSE::Compound:SideEffect, we need to replace the SideEffect with Disease and the relation type should be Hetionet::CcSE::Compound:Disease when we would like to treat the side effect as a disease.
                 # NOTE: We have replaced the SideEffect with Disease in the entity type in previous step. It's an essential step to make sure the source_type and target_type are consistent with the relation type.
-                if source_type_in_relation == "SideEffect" or target_type_in_relation == "SideEffect":
+                if (
+                    source_type_in_relation == "SideEffect"
+                    or target_type_in_relation == "SideEffect"
+                ):
                     row["relation_type"] = re.sub(
                         r"::SideEffect:", "::Disease:", row["relation_type"]
                     )
@@ -595,9 +636,13 @@ class BaseParser:
         empty_df["target_id"].replace("", np.nan, inplace=True)
         empty_df["target_id"] = empty_df["target_id"].fillna(empty_df["raw_target_id"])
         empty_df["source_type"].replace("", np.nan, inplace=True)
-        empty_df["source_type"] = empty_df["source_type"].fillna(empty_df["raw_source_type"])
+        empty_df["source_type"] = empty_df["source_type"].fillna(
+            empty_df["raw_source_type"]
+        )
         empty_df["target_type"].replace("", np.nan, inplace=True)
-        empty_df["target_type"] = empty_df["target_type"].fillna(empty_df["raw_target_type"])
+        empty_df["target_type"] = empty_df["target_type"].fillna(
+            empty_df["raw_target_type"]
+        )
 
         # Save the unformatted relations
         empty_df.to_csv(

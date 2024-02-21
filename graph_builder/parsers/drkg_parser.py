@@ -138,11 +138,13 @@ class DrkgParser(BaseParser):
 
     def extract_relations(self) -> List[Relation]:
         raw_filepath = self.raw_filepaths[0]
-        # Untar the file
-        logger.info(f"Untar {raw_filepath}")
-        self._extract_tar_gz(raw_filepath)
         drkg_filepath = self.db_directory / "drkg.tsv"
 
+        if not drkg_filepath.exists():
+            # Untar the file
+            logger.info(f"Untar {raw_filepath}")
+            self._extract_tar_gz(raw_filepath)
+        
         logger.info(f"Read {drkg_filepath}")
         drkg = self.read_drkg(drkg_filepath)
 

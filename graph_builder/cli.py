@@ -1,3 +1,4 @@
+import re
 import logging
 import coloredlogs
 import verboselogs
@@ -11,7 +12,14 @@ logger = logging.getLogger("graph_builder.cli")
 
 
 def _parse_database(
-    entity_file, db_dir, output_dir, database, download=True, skip=True, num_workers=20, relation_type_dict_fpath=None
+    entity_file,
+    db_dir,
+    output_dir,
+    database,
+    download=True,
+    skip=True,
+    num_workers=20,
+    relation_type_dict_fpath=None,
 ):
     Parser = parser_map.get(database, None)
     if Parser:
@@ -23,7 +31,9 @@ def _parse_database(
                 "relation_type" not in relation_type_dict_df.columns
                 or "formatted_relation_type" not in relation_type_dict_df.columns
             ):
-                raise ValueError("The relation type dictionary file should contain at least the relation_type and formatted_relation_type columns.")
+                raise ValueError(
+                    "The relation type dictionary file should contain at least the relation_type and formatted_relation_type columns."
+                )
         else:
             relation_type_dict_df = None
 
@@ -96,7 +106,16 @@ class NotSupportedAction(Exception):
     "--debug/--no-debug", default=False, help="Whether enable the debug mode?"
 )
 def cli(
-    output_dir, db_dir, database, ontology_file, download, n_jobs, skip, log_file, debug, relation_type_dict_fpath
+    output_dir,
+    db_dir,
+    database,
+    ontology_file,
+    download,
+    n_jobs,
+    skip,
+    log_file,
+    debug,
+    relation_type_dict_fpath,
 ):
     fmt = "%(asctime)s - %(module)s:%(lineno)d - %(levelname)s - %(message)s"
     if log_file:
@@ -106,10 +125,7 @@ def cli(
 
     verboselogs.install()
     # Use the logger name instead of the module name
-    coloredlogs.install(
-        level=logging.DEBUG if debug else logging.INFO,
-        fmt=fmt
-    )
+    coloredlogs.install(level=logging.DEBUG if debug else logging.INFO, fmt=fmt)
 
     all_databases = database
     valid_databases = list(
@@ -138,7 +154,7 @@ def cli(
             download=download,
             skip=skip,
             num_workers=n_jobs,
-            relation_type_dict_fpath=relation_type_dict_fpath
+            relation_type_dict_fpath=relation_type_dict_fpath,
         )
         for db in valid_databases
     )
